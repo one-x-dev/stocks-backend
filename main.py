@@ -35,17 +35,17 @@ def return_data(name, start, end):
 
 def return_predict(name, start_predict, end_predict):
     start = "2006-01-01"
-    end = "2021-01-01"
+    end = "2020-01-01"
 
-    hist.get_stock_data("PFE", start_date=start, end_date=end)
+    hist.get_stock_data(name, start_date=start, end_date=end)
     process = DataProcessing("stock_prices.csv", 0.9)
     process.gen_test(10)
     process.gen_train(10)
 
-    X_train = process.X_train.reshape((3379, 10, 1)) / 200
+    X_train = process.X_train.reshape((process.X_train.shape[0], 10, 1)) / 200
     Y_train = process.Y_train / 200
 
-    X_test = process.X_test.reshape(359, 10, 1) / 200
+    X_test = process.X_test.reshape(process.X_test.shape[0], 10, 1) / 200
     Y_test = process.Y_test / 200
 
     model = tf.keras.Sequential()
@@ -55,13 +55,13 @@ def return_predict(name, start_predict, end_predict):
 
     model.compile(optimizer="adam", loss="mean_squared_error")
 
-    model.fit(X_train, Y_train, epochs=10)
+    model.fit(X_train, Y_train, epochs=50)
 
     print(model.evaluate(X_test, Y_test))
 
-    data = pdr.get_data_yahoo("AAPL", "2020-12-21", "2021-01-06")
+    data = pdr.get_data_yahoo(name, start_predict, end_predict)
     stock = data["Adj Close"]
-    X_predict = np.array(stock).reshape((1, 10, 1)) / 200
+    X_predict = np.array(stock).reshape((1, np.array(stock).shape[0], 1)) / 200
 
     result = model.predict(X_predict)*200;
     print(result)
