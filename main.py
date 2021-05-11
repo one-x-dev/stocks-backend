@@ -33,19 +33,19 @@ def return_data(name, start, end):
       })
     return temp
 
-def return_predict(name, start_predict, end_predict):
-    start = "2006-01-01"
-    end = "2020-01-01"
+def return_predict():
+    start = "2005-12-01"
+    end = "2020-12-01"
 
-    hist.get_stock_data(name, start_date=start, end_date=end)
+    hist.get_stock_data("AAPL", start_date=start, end_date=end)
     process = DataProcessing("stock_prices.csv", 0.9)
     process.gen_test(10)
     process.gen_train(10)
 
-    X_train = process.X_train.reshape((process.X_train.shape[0], 10, 1)) / 200
+    X_train = process.X_train.reshape((3379, 10, 1)) / 200
     Y_train = process.Y_train / 200
 
-    X_test = process.X_test.reshape(process.X_test.shape[0], 10, 1) / 200
+    X_test = process.X_test.reshape(359, 10, 1) / 200
     Y_test = process.Y_test / 200
 
     model = tf.keras.Sequential()
@@ -55,26 +55,36 @@ def return_predict(name, start_predict, end_predict):
 
     model.compile(optimizer="adam", loss="mean_squared_error")
 
-    model.fit(X_train, Y_train, epochs=50)
-
+    model.fit(X_train, Y_train, epochs=100)
+    new_data = []
+    time_data = []
     print(model.evaluate(X_test, Y_test))
-
-    data = pdr.get_data_yahoo(name, start_predict, end_predict)
-    stock = data["Adj Close"]
-    X_predict = np.array(stock).reshape((1, np.array(stock).shape[0], 1)) / 200
-
-    result = model.predict(X_predict)*200;
-    print(result)
-    return { 'predict': str(result[0][0]) }
+    first_day = 5
+    last_day = 19
+    for i in range(7):
+        data1 = "2021-01-" + str(first_day + i)
+        data2 = "2021-02-" + str(last_day + i if 1 + i >= 10 else "0" + str(2 + i))
+        time = "2021-01-" + str(last_day + i + 1 if last_day+ i + 1 >= 10 else "0" + str(last_day + i + 1))
+        time_data.append(time)
+        data = pdr.get_data_yahoo("AAPL", data1, data2)
+        print(data1, data2)
+        stock = data["Adj Close"]
+        print(stock.shape)
+        X_predict = np.array(stock).reshape((1, stock.shape[0], 1)) / 200
+        s = model.predict(X_predict)*200
+        print(s[0])
+        new_data.append(s[0])
+    result = []
+    for i in range(7):
+        print(i, new_data[i][0])
+        result.append({ "predict" : float(new_data[i][0]), "date" : time_data[i] })
+    return result
 
 @app.route('/predict')
 def predict():
     data = request.args
-    start = data['start']
-    end = data['end']
-    name = data['name']
-
-    temp = return_predict(name, start, end)
+    
+    temp = return_predict()
     print(temp)
     return jsonify(temp)
 
@@ -84,6 +94,7 @@ def test():
     start = data['start']
     end = data['end']
     name = data['name']
+    print("test end: ", end)
     temp = return_data(name, start, end)
     return jsonify(temp)
     
